@@ -30,7 +30,8 @@ denote $\lambda_s(t\mid X, A=a)$ as the hazard function for the actual
 survival time in the data source $s$, where $s=1$ indicates the trial
 and $s=0$ indicates the observational studies. We posit the Cox models
 on each data source as
-$$\text{RCT:} \quad \lambda_1(t\mid X, A=a) =\lambda_{1,0}(t)\exp\{c_1(X) + a\tau(X)\}; \text{OS:} \quad \lambda_0(t\mid X, A=a) =\lambda_{0,0}(t)\exp\{c_0(X) + a\tau(X) + a\lambda(X)\}.$$
+$$\text{RCT:} \quad \lambda_1(t\mid X, A=a) =\lambda_{1,0}(t)\exp\{c_1(X) + a\tau(X)\},$$
+$$\text{OS:} \quad \lambda_0(t\mid X, A=a) =\lambda_{0,0}(t)\exp\{c_0(X) + a\tau(X) + a\lambda(X)\}$$.
 
 Here, $\tau(X)$ is the treatment effect function of interest, which is
 further assumed to be a linear structure as $$
