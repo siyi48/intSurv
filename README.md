@@ -31,18 +31,18 @@ survival time in the data source $s$, where $s=1$ indicates the trial
 and $s=0$ indicates the observational studies. We posit the Cox models
 on each data source as
 $$\text{RCT:} \quad \lambda_1(t\mid X, A=a) =\lambda_{1,0}(t)\exp\{c_1(X) + a\tau(X)\},$$
-$$\text{OS:} \quad \lambda_0(t\mid X, A=a) =\lambda_{0,0}(t)\exp\{c_0(X) + a\tau(X) + a\lambda(X)\}$$.
+$$\text{OS:} \quad \lambda_0(t\mid X, A=a) =\lambda_{0,0}(t)\exp\{c_0(X) + a\tau(X) + a\lambda(X)\}.$$
 
 Here, $\tau(X)$ is the treatment effect function of interest, which is
-further assumed to be a linear structure as $$
-\tau(X) = \tau(X;\beta_0) = X^{\text T}\beta_0.
-$$ We conduct sieve approximation on the nuisance functions
-$c_1(X), c_0(X)$, and $\lambda(X)$ using the polynomial basis. The
-integrative estimator is solved by minimizing the penalized log partial
-likelihood, with the penalty function selected as the adaptive lasso. We
-only add the penalization for the covariate information of $\lambda(X)$
-(the confounding function), since other nuisance functions do not affect
-the efficiency of the integrative estimator.
+further assumed to be a linear structure as
+$$\tau(X) = \tau(X;\beta_0) = X^{\text T}\beta_0.$$ We conduct sieve
+approximation on the nuisance functions $c_1(X), c_0(X)$, and
+$\lambda(X)$ using the polynomial basis. The integrative estimator is
+solved by minimizing the penalized log partial likelihood, with the
+penalty function selected as the adaptive lasso. We only add the
+penalization for the covariate information of $\lambda(X)$ (the
+confounding function), since other nuisance functions do not affect the
+efficiency of the integrative estimator.
 
 ## Example
 
