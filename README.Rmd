@@ -34,10 +34,8 @@ devtools::install_github("siyi48/intSurv")
 
 Let $X\in \mathbb{R}^d$ be the covariates, $A$ be the binary treatment, $S$ be the data source indicator, and $T$ be the survival time. Also, denote $\lambda_s(t\mid X, A=a)$ as the hazard function for the actual survival time in the data source $s$, where $s=1$ indicates the trial and $s=0$ indicates the observational studies. We posit the Cox models on each data source as 
 $$
-\begin{aligned}
 \text{RCT:} \quad \lambda_1(t\mid X, A=a) & =\lambda_{1,0}(t)\exp\{c_1(X) + a\tau(X)\}; \\
 \text{OS:} \quad \lambda_0(t\mid X, A=a) & =\lambda_{0,0}(t)\exp\{c_0(X) + a\tau(X) + a\lambda(X)\}.
-\end{aligned}
 $$
 Here, $\tau(X)$ is the treatment effect function of interest, which is further assumed to be a linear structure as
 $$
