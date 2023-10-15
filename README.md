@@ -29,11 +29,15 @@ $S$ be the data source indicator, and $T$ be the survival time. Also,
 denote $\lambda_s(t\mid X, A=a)$ as the hazard function for the actual
 survival time in the data source $s$, where $s=1$ indicates the trial
 and $s=0$ indicates the observational studies. We posit the Cox models
-on each data source as $$
+on each data source as
+
+``` math
 \text{RCT:} \quad \lambda_1(t\mid X, A=a) & =\lambda_{1,0}(t)\exp\{c_1(X) + a\tau(X)\}; \\
 \text{OS:} \quad \lambda_0(t\mid X, A=a) & =\lambda_{0,0}(t)\exp\{c_0(X) + a\tau(X) + a\lambda(X)\}.
-$$ Here, $\tau(X)$ is the treatment effect function of interest, which
-is further assumed to be a linear structure as $$
+```
+
+Here, $\tau(X)$ is the treatment effect function of interest, which is
+further assumed to be a linear structure as $$
 \tau(X) = \tau(X;\beta_0) = X^{\text T}\beta_0.
 $$ We conduct sieve approximation on the nuisance functions
 $c_1(X), c_0(X)$, and $\lambda(X)$ using the polynomial basis. The
