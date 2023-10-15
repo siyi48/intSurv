@@ -286,7 +286,7 @@ fitcox.rct <- function(tau.mat, c1.sieve, a, s = NULL, t, delta){
 #'
 #' This function is the main function of obtaining the integrative estimator
 #' with its variance estimates. The integrative estimator is obtained by
-#' minimizing the penalized log partial likelihood, with thee penalty function
+#' minimizing the penalized log partial likelihood, with the penalty function
 #' selected as the adaptive lasso.
 #'
 #' @param tau.mat the matrix that contains the covariate terms of \eqn{\tau(X)}.
@@ -337,7 +337,30 @@ fitcox.rct <- function(tau.mat, c1.sieve, a, s = NULL, t, delta){
 #' @import glmnet survival
 #' @export
 #'
-#' @example example.R
+#' @examples
+#' q.c1 <- 3
+#' q.c0 <- 3
+#' q.lambda <- 3
+#' nfolds <- 5
+#' c1.mat <- matrix(dat$x1, ncol = 1)
+#' c1.discrete <- matrix(dat$x2, ncol = 1)
+#' c0.mat <- matrix(dat$x1, ncol = 1)
+#' c0.discrete <- matrix(dat$x2, ncol = 1)
+#' lambda.mat <-  matrix(dat$x1, ncol = 1)
+#' lambda.discrete <- cbind(1, dat$x2)
+#' tau.mat <- cbind(1, dat$x1, dat$x1^2)
+#' s <- dat$s
+#' delta <- dat$delta
+#' t <- dat$t
+#' a <- dat$a
+#' res.hte <- surv.hte(tau.mat = tau.mat, c1.mat = c1.mat,
+#' c1.discrete = c1.discrete, q.c1 = q.c1,
+#' c0.mat = c0.mat, c0.discrete = c0.discrete, q.c0 = q.c0,
+#' lambda.mat = lambda.mat,
+#' lambda.discrete = lambda.discrete, q.lambda = q.lambda,
+#' a = a, s = s, t = t, delta = delta,
+#' nfolds = nfolds, type = c("int", "rct"))
+#' res.hte
 surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
                      c0.mat, c0.discrete = NULL, q.c0,
                      lambda.mat, lambda.discrete = NULL, q.lambda,
@@ -398,4 +421,5 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
               ve.ate = ve.ate))
 }
 
-
+#' @importFrom stats coef poly reformulate var
+NULL
