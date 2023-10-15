@@ -35,14 +35,15 @@ $$\text{OS:} \quad \lambda_0(t\mid X, A=a) =\lambda_{0,0}(t)\exp\{c_0(X) + a\tau
 
 Here, $\tau(X)$ is the treatment effect function of interest, which is
 further assumed to be a linear structure as
-$$\tau(X) = \tau(X;\beta_0) = X^{\text T}\beta_0.$$ We conduct sieve
-approximation on the nuisance functions $c_1(X), c_0(X)$, and
-$\lambda(X)$ using the polynomial basis. The integrative estimator is
-solved by minimizing the penalized log partial likelihood, with the
-penalty function selected as the adaptive lasso. We only add the
-penalization for the covariate information of $\lambda(X)$ (the
-confounding function), since other nuisance functions do not affect the
-efficiency of the integrative estimator.
+$$\tau(X) = \tau(X;\beta_0) = X^{\text T}\beta_0.$$
+
+We conduct sieve approximation on the nuisance functions
+$c_1(X), c_0(X)$, and $\lambda(X)$ using the polynomial basis. The
+integrative estimator is solved by minimizing the penalized log partial
+likelihood, with the penalty function selected as the adaptive lasso. We
+only add the penalization for the covariate information of $\lambda(X)$
+(the confounding function), since other nuisance functions do not affect
+the efficiency of the integrative estimator.
 
 ## Example
 
@@ -78,12 +79,24 @@ res.hte <- surv.hte(tau.mat = tau.mat, c1.mat = c1.mat,
                     nfolds = nfolds, type = c("int", "rct"))
 res.hte
 #> $beta.est
-#>        ax1        ax2        int        ax1        ax2        rct 
-#>  1.8943490  0.8296652  1.1382654  0.5404240 -0.5521441 -0.5657690 
+#> $beta.est$int
+#>       ax1       ax2       ax3 
+#> 1.8943490 0.8296652 1.1382654 
+#> 
+#> $beta.est$rct
+#>        ax1        ax2        ax3 
+#>  0.5404240 -0.5521441 -0.5657690 
+#> 
 #> 
 #> $ve.beta
-#>         ax1         ax2         int         ax1         ax2         rct 
-#> 0.005374544 0.004280909 0.002397345 0.024151522 0.023599934 0.015180511 
+#> $ve.beta$int
+#>         ax1         ax2         ax3 
+#> 0.005374544 0.004280909 0.002397345 
+#> 
+#> $ve.beta$rct
+#>        ax1        ax2        ax3 
+#> 0.02415152 0.02359993 0.01518051 
+#> 
 #> 
 #> $cov.beta
 #> $cov.beta$int

@@ -386,10 +386,8 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
                           c0.sieve = c0.sieve, lambda.sieve = lambda.sieve,
                           a = a, s = s, t = t, delta = delta,
                           nfolds = nfolds)
-    beta.est <- c(beta.est, res.int$betahat)
-    names(beta.est)[length(beta.est)] <- "int"
-    ve.beta <- c(ve.beta, res.int$ve.beta)
-    names(ve.beta)[length(ve.beta)] <- "int"
+    beta.est <- c(beta.est, list(res.int$betahat))
+    ve.beta <- c(ve.beta, list(res.int$ve.beta))
     cov.beta <- c(cov.beta, list(res.int$var.betahat))
     name.list <- c(name.list, "int")
     ate.est <- c(ate.est, res.int$ate)
@@ -401,10 +399,8 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
   if("rct" %in% type){
     res.rct <- fitcox.rct(tau.mat = tau.mat, c1.sieve = c1.sieve,
                           a = a, s = s, t = t, delta = delta)
-    beta.est <- c(beta.est, res.rct$betahat)
-    names(beta.est)[length(beta.est)] <- "rct"
-    ve.beta <- c(ve.beta, res.rct$ve.beta)
-    names(ve.beta)[length(ve.beta)] <- "rct"
+    beta.est <- c(beta.est, list(res.rct$betahat))
+    ve.beta <- c(ve.beta, list(res.rct$ve.beta))
     cov.beta <- c(cov.beta, list(res.rct$var.betahat))
     name.list <- c(name.list, "rct")
     ate.est <- c(ate.est, res.rct$ate)
@@ -412,6 +408,8 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
     ve.ate <- c(ve.ate, res.rct$ve.ate)
     names(ve.ate)[length(ve.ate)] <- "rct"
   }
+  names(beta.est) <- name.list
+  names(ve.beta) <- name.list
   names(cov.beta) <- name.list
 
   return(list(beta.est = beta.est,
