@@ -49,7 +49,17 @@ the efficiency of the integrative estimator.
 
 The main function `surv.hte` provides two types of estimated parameter
 $\beta$ in the treatment effect function $\tau(X)$ as `int` (the
-integrative estimator) and `rct` (the trial estimator).
+integrative estimator) and `rct` (the trial-only estimator).
+
+In the example data, the true $\tau(X) = 1 + X_1 + X_1^2$. We include
+all possible covariates in the nuisance functions
+$c_1(X), c_0(X),\lambda(X)$ and set the number of polynomial basis
+functions for each nuisance function as $3$ (specified by `q.c1`,
+`q.c0`, `q.lambda`) for the continuous covariates $X_1$. For the binary
+covariate $X_2$, we input it into `c1.discrete`, `c0.discrete`, and
+`lambda.discrete`. For identifiability, we do not include the intercept
+term in $c_1(X)$ and $c_0(X)$, but we incorporate the intercept term in
+the `lambda.discrete` of $\lambda(X)$.
 
 ``` r
 library(intSurv)
@@ -57,7 +67,7 @@ library(intSurv)
 q.c1 <- 3
 q.c0 <- 3
 q.lambda <- 3
-nfolds <- 5 # initialize (use lasso value)
+nfolds <- 5
 c1.mat <- matrix(dat$x1, ncol = 1)
 c1.discrete <- matrix(dat$x2, ncol = 1)
 c0.mat <- matrix(dat$x1, ncol = 1)
