@@ -44,7 +44,7 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
   c1.ncol <- ncol(c1.mat)
   c1.sieve <- NULL
   for(k in 1:c1.ncol){
-    basis.mat <- poly(c1.mat[,k], degree = q.c1)
+    basis.mat <- poly(c1.mat[,k], degree = q.c1, raw = TRUE)
     colnames(basis.mat) <- paste0("s1x", k, 1:q.c1)
     c1.sieve <- cbind(c1.sieve, basis.mat)
   }
@@ -55,7 +55,7 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
   c0.ncol <- ncol(c0.mat)
   c0.sieve <- NULL
   for(k in 1:c0.ncol){
-    basis.mat <- poly(c0.mat[,k], degree = q.c0)
+    basis.mat <- poly(c0.mat[,k], degree = q.c0, raw = TRUE)
     colnames(basis.mat) <- paste0("s0x", k, 1:q.c0)
     c0.sieve <- cbind(c0.sieve, basis.mat)
   }
@@ -66,7 +66,7 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
   lambda.ncol <- ncol(lambda.mat)
   lambda.sieve <- NULL
   for(k in 1:lambda.ncol){
-    basis.mat <- poly(lambda.mat[,k], degree = q.lambda)
+    basis.mat <- poly(lambda.mat[,k], degree = q.lambda, raw = TRUE)
     colnames(basis.mat) <- paste0("s0ax", k, 1:q.lambda)
     lambda.sieve <- cbind(lambda.sieve, basis.mat)
   }
@@ -110,6 +110,7 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
 #' parameter
 #' \item `ate`: the estimated average treatment effect
 #' \item `ve.ate`: the variance estimate of the average treatment effect
+#' \item `psi.hat`: the estimated confounding function parameter
 #' }
 #' @import glmnet survival
 #' @export
@@ -186,13 +187,26 @@ fitcox.int <- function(tau.mat, c1.sieve, c0.sieve, lambda.sieve,
   ateve.int <- as.numeric(xbar.int%*%var.betahat.int%*%t(xbar.int)) +
     as.numeric(betamat%*%xvar.int%*%t(betamat))
 
+  # return the selected variables
+  if(length(index0) == 0 || length(index0) == length(int.allvar)){
+    psi.hat <- par.int.refit[(ncol(c1.fitmat) + ncol(c0.fitmat) + ncol(tau.fitmat)+1):(length(par.int.refit)-1)]
+  }
+  else{
+    index0_cf <- index0 - ncol(c1.fitmat) - ncol(c0.fitmat) - ncol(tau.fitmat)
+    psi.hat <- rep(0, ncol(lambda.fitmat))
+    theta_pen_non0 <- par.int.refit[(ncol(c1.fitmat) + ncol(c0.fitmat) + ncol(tau.fitmat)+1):(length(par.int.refit)-1)]
+    psi.hat[-index0_cf] <- theta_pen_non0
+  }
+  names(psi.hat) <- colnames(lambda.sieve)
+
   return(list(
     # point estimate
     betahat = betahat.int,
     ve.beta = betase.int^2,
     var.betahat = var.betahat.int,
     ate = ate.int,
-    ve.ate = ateve.int
+    ve.ate = ateve.int,
+    psi.hat = psi.hat
   ))
 }
 
@@ -333,6 +347,7 @@ fitcox.rct <- function(tau.mat, c1.sieve, a, s = NULL, t, delta){
 #' parameter
 #' \item `ate.est`: the estimated average treatment effect
 #' \item `ve.ate`: the variance estimate of the average treatment effect
+#' \item `psi.est`: the estimated confounding function parameter
 #' }
 #' @import glmnet survival
 #' @export
@@ -381,6 +396,7 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
   name.list <- NULL
   ate.est <- NULL
   ve.ate <- NULL
+  psi.est <- NULL
   if("int" %in% type){
     res.int <- fitcox.int(tau.mat = tau.mat, c1.sieve = c1.sieve,
                           c0.sieve = c0.sieve, lambda.sieve = lambda.sieve,
@@ -394,6 +410,7 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
     names(ate.est)[length(ate.est)] <- "int"
     ve.ate <- c(ve.ate, res.int$ve.ate)
     names(ve.ate)[length(ve.ate)] <- "int"
+    psi.est <- c(psi.est, res.int$psi.hat)
   }
 
   if("rct" %in% type){
@@ -416,7 +433,8 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
               ve.beta = ve.beta,
               cov.beta = cov.beta,
               ate.est = ate.est,
-              ve.ate = ve.ate))
+              ve.ate = ve.ate,
+              psi.est = psi.est))
 }
 
 #' @importFrom stats coef poly reformulate var

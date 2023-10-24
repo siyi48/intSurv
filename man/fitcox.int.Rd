@@ -50,6 +50,7 @@ a list of estimators, including
 parameter
 \item \code{ate}: the estimated average treatment effect
 \item \code{ve.ate}: the variance estimate of the average treatment effect
+\item \code{psi.hat}: the estimated confounding function parameter
 }
 }
 \description{
