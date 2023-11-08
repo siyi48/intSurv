@@ -26,6 +26,13 @@
 #' @param q.lambda the number of basis functions to approximate each continuous
 #' covariate in \eqn{\lambda(X)}. Here, it corresponds to the degree of freedom
 #' to generate the polynomial basis.
+#' @param basis.type the type of basis used to approximate the nuisance functions,
+#' including
+#' \itemize{
+#' \item `poly.raw`: the raw polynomial basis. The default type of the basis.
+#' \item `poly.orthogonal`: the orthogonal polynomial basis
+#' \item `bs`: the B-spline basis for a polynomial spline
+#' }
 #' @return a list of covariate matrices for the nuisance functions, including
 #' \itemize{
 #' \item `c1.sieve`: the covariate matrix for \eqn{c_1(X)} in the sieve
@@ -35,16 +42,29 @@
 #' \item `lambda.sieve`: the covariate matrix for \eqn{\lambda(X)} in the sieve
 #' approximation
 #' }
+#' @import splines
 #' @export
 sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
                       c0.mat, c0.discrete = NULL, q.c0,
-                      lambda.mat, lambda.discrete = NULL, q.lambda){
+                      lambda.mat, lambda.discrete = NULL, q.lambda,
+                      basis.type = "poly.raw"){
   # create basis function for the nuisance function
   # (1) c1.sieve
   c1.ncol <- ncol(c1.mat)
   c1.sieve <- NULL
   for(k in 1:c1.ncol){
-    basis.mat <- poly(c1.mat[,k], degree = q.c1, raw = TRUE)
+    if(!(basis.type %in% c("poly.raw", "poly.orthogonal", "bs"))){
+      stop("No available type to generate the basis")
+    }
+    else if(basis.type == "poly.raw"){
+      basis.mat <- poly(c1.mat[,k], degree = q.c1, raw = TRUE)
+    }
+    else if(basis.type == "poly.orthogonal"){
+      basis.mat <- poly(c1.mat[,k], degree = q.c1)
+    }
+    else if(basis.type == "bs"){
+      basis.mat <- splines::bs(c1.mat[,k], df = q.c1)
+    }
     colnames(basis.mat) <- paste0("s1x", k, 1:q.c1)
     c1.sieve <- cbind(c1.sieve, basis.mat)
   }
@@ -55,7 +75,18 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
   c0.ncol <- ncol(c0.mat)
   c0.sieve <- NULL
   for(k in 1:c0.ncol){
-    basis.mat <- poly(c0.mat[,k], degree = q.c0, raw = TRUE)
+    if(!(basis.type %in% c("poly.raw", "poly.orthogonal", "bs"))){
+      stop("No available type to generate the basis")
+    }
+    else if(basis.type == "poly.raw"){
+      basis.mat <- poly(c0.mat[,k], degree = q.c0, raw = TRUE)
+    }
+    else if(basis.type == "poly.orthogonal"){
+      basis.mat <- poly(c0.mat[,k], degree = q.c0)
+    }
+    else if(basis.type == "bs"){
+      basis.mat <- splines::bs(c0.mat[,k], df = q.c0)
+    }
     colnames(basis.mat) <- paste0("s0x", k, 1:q.c0)
     c0.sieve <- cbind(c0.sieve, basis.mat)
   }
@@ -66,7 +97,18 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
   lambda.ncol <- ncol(lambda.mat)
   lambda.sieve <- NULL
   for(k in 1:lambda.ncol){
-    basis.mat <- poly(lambda.mat[,k], degree = q.lambda, raw = TRUE)
+    if(!(basis.type %in% c("poly.raw", "poly.orthogonal", "bs"))){
+      stop("No available type to generate the basis")
+    }
+    else if(basis.type == "poly.raw"){
+      basis.mat <- poly(lambda.mat[,k], degree = q.lambda, raw = TRUE)
+    }
+    else if(basis.type == "poly.orthogonal"){
+      basis.mat <- poly(lambda.mat[,k], degree = q.lambda)
+    }
+    else if(basis.type == "bs"){
+      basis.mat <- splines::bs(lambda.mat[,k], df = q.lambda)
+    }
     colnames(basis.mat) <- paste0("s0ax", k, 1:q.lambda)
     lambda.sieve <- cbind(lambda.sieve, basis.mat)
   }
@@ -210,7 +252,6 @@ fitcox.int <- function(tau.mat, c1.sieve, c0.sieve, lambda.sieve,
   ))
 }
 
-
 #' Estimation of the heterogeneous treatment effect based on the covariates from
 #' the basis approximation for the trial data
 #'
@@ -325,6 +366,13 @@ fitcox.rct <- function(tau.mat, c1.sieve, a, s = NULL, t, delta){
 #' @param q.lambda the number of basis functions to approximate each continuous
 #' covariate in \eqn{\lambda(X)}. Here, it corresponds to the degree of freedom
 #' to generate the polynomial basis.
+#' @param basis.type the type of basis used to approximate the nuisance functions,
+#' including
+#' \itemize{
+#' \item `poly.raw`: the raw polynomial basis. The default type of the basis.
+#' \item `poly.orthogonal`: the orthogonal polynomial basis
+#' \item `bs`: the B-spline basis for a polynomial spline
+#' }
 #' @param a the binary treatment assignment, where the active treatment group
 #' should be encoded as `1`, and the control group should be encoded as `0`.
 #' @param s the binary data source indicator, where the trial data should be
@@ -379,13 +427,15 @@ fitcox.rct <- function(tau.mat, c1.sieve, a, s = NULL, t, delta){
 surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
                      c0.mat, c0.discrete = NULL, q.c0,
                      lambda.mat, lambda.discrete = NULL, q.lambda,
+                     basis.type = "poly.raw",
                      a, s, t, delta, nfolds = 5, type = "int"){
   xmat <- sieve.mat(c1.mat = c1.mat,
                     c1.discrete = c1.discrete, q.c1 = q.c1,
                     c0.mat = c0.mat,
                     c0.discrete = c0.discrete, q.c0 = q.c0,
                     lambda.mat = lambda.mat,
-                    lambda.discrete = lambda.discrete, q.lambda = q.lambda)
+                    lambda.discrete = lambda.discrete, q.lambda = q.lambda,
+                    basis.type = basis.type)
   c1.sieve <- xmat$c1.sieve
   c0.sieve <- xmat$c0.sieve
   lambda.sieve <- xmat$lambda.sieve

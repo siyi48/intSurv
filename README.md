@@ -86,6 +86,7 @@ res.hte <- surv.hte(tau.mat = tau.mat, c1.mat = c1.mat,
                     c0.mat = c0.mat, c0.discrete = c0.discrete, q.c0 = q.c0,
                     lambda.mat = lambda.mat,
                     lambda.discrete = lambda.discrete, q.lambda = q.lambda,
+                    basis.type = "poly.raw",
                     a = a, s = s, t = t, delta = delta,
                     nfolds = nfolds, type = c("int", "rct"))
 res.hte

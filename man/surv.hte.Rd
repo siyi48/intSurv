@@ -16,6 +16,7 @@ surv.hte(
   lambda.mat,
   lambda.discrete = NULL,
   q.lambda,
+  basis.type = "poly.raw",
   a,
   s,
   t,
@@ -56,6 +57,14 @@ which may affect \eqn{\lambda(X)}.}
 \item{q.lambda}{the number of basis functions to approximate each continuous
 covariate in \eqn{\lambda(X)}. Here, it corresponds to the degree of freedom
 to generate the polynomial basis.}
+
+\item{basis.type}{the type of basis used to approximate the nuisance functions,
+including
+\itemize{
+\item \code{poly.raw}: the raw polynomial basis. The default type of the basis.
+\item \code{poly.orthogonal}: the orthogonal polynomial basis
+\item \code{bs}: the B-spline basis for a polynomial spline
+}}
 
 \item{a}{the binary treatment assignment, where the active treatment group
 should be encoded as \code{1}, and the control group should be encoded as \code{0}.}

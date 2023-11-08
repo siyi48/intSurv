@@ -14,7 +14,8 @@ sieve.mat(
   q.c0,
   lambda.mat,
   lambda.discrete = NULL,
-  q.lambda
+  q.lambda,
+  basis.type = "poly.raw"
 )
 }
 \arguments{
@@ -47,6 +48,14 @@ which may affect \eqn{\lambda(X)}.}
 \item{q.lambda}{the number of basis functions to approximate each continuous
 covariate in \eqn{\lambda(X)}. Here, it corresponds to the degree of freedom
 to generate the polynomial basis.}
+
+\item{basis.type}{the type of basis used to approximate the nuisance functions,
+including
+\itemize{
+\item \code{poly.raw}: the raw polynomial basis. The default type of the basis.
+\item \code{poly.orthogonal}: the orthogonal polynomial basis
+\item \code{bs}: the B-spline basis for a polynomial spline
+}}
 }
 \value{
 a list of covariate matrices for the nuisance functions, including
