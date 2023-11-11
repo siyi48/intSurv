@@ -30,8 +30,8 @@
 #' including
 #' \itemize{
 #' \item `poly.raw`: the raw polynomial basis. The default type of the basis.
-#' \item `poly.orthogonal`: the orthogonal polynomial basis
-#' \item `bs`: the B-spline basis for a polynomial spline
+#' \item `poly.orthogonal`: the orthogonal polynomial basis.
+#' \item `bs`: the B-spline basis for a polynomial spline.
 #' }
 #' @return a list of covariate matrices for the nuisance functions, including
 #' \itemize{
@@ -127,8 +127,8 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
 #' covariates from the basis approximation
 #'
 #' This function obtains the integrative estimator with its variance estimates
-#' by minimizing the penalized log partial likelihood. The penalty function is
-#' selected as the adaptive lasso.
+#' by minimizing the penalized log partial likelihood. The penalty function can
+#' selected from the adaptive lasso and the lasso.
 #'
 #' @param tau.mat the matrix that contains the covariate terms of \eqn{\tau(X)}.
 #' @param c1.sieve the covariate matrix for \eqn{c_1(X)} in the sieve
@@ -143,6 +143,12 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
 #' encoded as `1`, and the observational study should be encoded as `0`.
 #' @param t the observed event time.
 #' @param delta the event indicator.
+#' @param penalty.type the type of penalty in the variable selection procedure,
+#' including
+#' \itemize{
+#' \item `lasso`: the lasso penalty.
+#' \item `adaptive.lasso`: the adaptive lasso penalty.
+#' }
 #' @param nfolds the fold of cross-validation, the default value is `5`.
 #' @return a list of estimators, including
 #' \itemize{
@@ -157,7 +163,9 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
 #' @import glmnet survival
 #' @export
 fitcox.int <- function(tau.mat, c1.sieve, c0.sieve, lambda.sieve,
-                       a, s, t, delta, nfolds = 5){
+                       a, s, t, delta,
+                       penalty.type = "adaptive.lasso",
+                       nfolds = 5){
   n <- nrow(tau.mat)
   c1.fitmat <- c1.sieve*s
   c0.fitmat <- c0.sieve*(1-s)
@@ -185,8 +193,17 @@ fitcox.int <- function(tau.mat, c1.sieve, c0.sieve, lambda.sieve,
                          colnames(tau.fitmat), colnames(lambda.fitmat))]
   xvar.mat <- data.matrix(xvar.mat)
   penalty.factor <- rep(0, length(par.int.ini)-1)
-  penalty.factor[(ncol(c1.fitmat)+ncol(c0.fitmat)+ncol(tau.fitmat)+1):
-                    (length(par.int.ini)-1)] <- 1/abs(theta.pen.ini)
+  if(!(penalty.type %in% c("adaptive.lasso", "lasso"))){
+    stop("No available type to implement variable selection")
+  }
+  else if(penalty.type == "adaptive.lasso"){
+    penalty.factor[(ncol(c1.fitmat)+ncol(c0.fitmat)+ncol(tau.fitmat)+1):
+                     (length(par.int.ini)-1)] <- 1/abs(theta.pen.ini)
+  }
+  else if(penalty.type == "lasso"){
+    penalty.factor[(ncol(c1.fitmat)+ncol(c0.fitmat)+ncol(tau.fitmat)+1):
+                     (length(par.int.ini)-1)] <- rep(1, length(theta.pen.ini))
+  }
 
   fit.cv <- suppressWarnings(glmnet::cv.glmnet(x = xvar.mat,
                               y = y.strata,
@@ -252,6 +269,172 @@ fitcox.int <- function(tau.mat, c1.sieve, c0.sieve, lambda.sieve,
   ))
 }
 
+#' Penalized integrative estimation of the heterogeneous treatment
+#' effect based on the covariates from the basis approximation
+#'
+#' This function obtains a penalized integrative estimator with its
+#' variance estimates by minimizing the penalized log partial likelihood.
+#' The penalty function can selected from the adaptive lasso and the
+#' lasso.
+#'
+#' @param tau.mat the matrix that contains the covariate terms of \eqn{\tau(X)}.
+#' @param c1.sieve the covariate matrix for \eqn{c_1(X)} in the sieve
+#' approximation.
+#' @param c0.sieve the covariate matrix for \eqn{c_0(X)} in the sieve
+#' approximation.
+#' @param lambda.sieve the covariate matrix for \eqn{\lambda(X)} in the sieve
+#' approximation.
+#' @param a the binary treatment assignment, where the active treatment group
+#' should be encoded as `1`, and the control group should be encoded as `0`.
+#' @param s the binary data source indicator, where the trial data should be
+#' encoded as `1`, and the observational study should be encoded as `0`.
+#' @param t the observed event time.
+#' @param delta the event indicator.
+#' @param penalty.type the type of penalty in the variable selection procedure,
+#' including
+#' \itemize{
+#' \item `lasso`: the lasso penalty.
+#' \item `adaptive.lasso`: the adaptive lasso penalty.
+#' }
+#' @param nfolds the fold of cross-validation, the default value is `5`.
+#' @return a list of estimators, including
+#' \itemize{
+#' \item `betahat`: the estimated treatment effect parameter
+#' \item `ve.beta`: the variance estimate of the estimated treatment effect
+#' \item `var.betahat`: the covariance matrix of the estimated treatment effect
+#' parameter
+#' \item `ate`: the estimated average treatment effect
+#' \item `ve.ate`: the variance estimate of the average treatment effect
+#' \item `psi.hat`: the estimated confounding function parameter
+#' }
+#' @import glmnet survival
+#' @export
+fitcox.int.pen <- function(tau.mat, c1.sieve, c0.sieve, lambda.sieve,
+                           a, s, t, delta,
+                           penalty.type = "adaptive.lasso",
+                           nfolds = 5){
+  n <- nrow(tau.mat)
+  c1.fitmat <- c1.sieve*s
+  c0.fitmat <- c0.sieve*(1-s)
+  lambda.fitmat <- lambda.sieve*a*(1-s)
+  colnames(tau.mat) <- paste0("ax", 1:ncol(tau.mat))
+  tau.fitmat <- tau.mat*a
+
+  dat.fit <- cbind(c1.fitmat, c0.fitmat,
+                   tau.fitmat, lambda.fitmat, t, delta)
+  dat.fit <- data.frame(dat.fit)
+
+  # initial value for adaptive lasso -- Cox model without penalization
+  int.var <- paste(c(colnames(c1.fitmat), colnames(c0.fitmat),
+                     colnames(tau.fitmat), colnames(lambda.fitmat),
+                     "survival::strata(s)"),
+                   collapse=" + ")
+  formula.int <- reformulate(int.var, response = "survival::Surv(t, delta)")
+  fit.int.ini <- survival::coxph(formula.int, data = dat.fit)
+  par.int.ini <- fit.int.ini$coefficients
+  theta.beta.ini <- par.int.ini[colnames(tau.fitmat)]
+  theta.pen.ini <- par.int.ini[colnames(lambda.fitmat)]
+
+  # fit adaptive lasso, with penalty on lambda(X)
+  y.strata <- glmnet::stratifySurv(survival::Surv(t, delta), strata = s)
+  xvar.mat <- dat.fit[,c(colnames(c1.fitmat), colnames(c0.fitmat),
+                         colnames(tau.fitmat), colnames(lambda.fitmat))]
+  xvar.mat <- data.matrix(xvar.mat)
+  penalty.factor <- rep(0, length(par.int.ini)-1)
+  if(!(penalty.type %in% c("adaptive.lasso", "lasso"))){
+    stop("No available type to implement variable selection")
+  }
+  else if(penalty.type == "adaptive.lasso"){
+    penalty.factor[(ncol(c1.fitmat)+ncol(c0.fitmat)+1):
+                     (length(par.int.ini)-1)] <- 1/abs(c(theta.beta.ini, theta.pen.ini))
+  }
+  else if(penalty.type == "lasso"){
+    penalty.factor[(ncol(c1.fitmat)+ncol(c0.fitmat)+1):
+                     (length(par.int.ini)-1)] <- rep(1, length(theta.beta.ini) + length(theta.pen.ini))
+  }
+
+  fit.cv <- suppressWarnings(glmnet::cv.glmnet(x = xvar.mat,
+                                               y = y.strata,
+                                               family = "cox",
+                                               penalty.factor = penalty.factor,
+                                               thresh = 1e-14,
+                                               nfolds = nfolds))
+  par.int <- as.vector(coef(fit.cv, s = "lambda.min"))
+
+  # After varaible selection, refit the Cox model
+  int.allvar <- c(colnames(c1.fitmat), colnames(c0.fitmat),
+                  colnames(tau.fitmat), colnames(lambda.fitmat))
+  index0 <- which(par.int == 0)
+  if(length(index0) == 0 || length(index0) == length(int.allvar)){
+    int.var <- int.allvar
+  }
+  else{
+    int.var <- int.allvar[-index0]
+  }
+  tau.var.selected <- intersect(int.var, colnames(tau.fitmat))
+  lambda.var.selected <- intersect(int.var, colnames(lambda.fitmat))
+  if(length(tau.var.selected) == 0){
+    betahat.int <- rep(0, ncol(tau.fitmat))
+    betase.int <- rep(0, ncol(tau.fitmat))
+    var.betahat.int <- matrix(0, ncol(tau.fitmat), ncol(tau.fitmat))
+    ate.int <- 0
+    ateve.int <- 0
+    psi.hat <- par.int[(ncol(c1.fitmat)+ncol(c0.fitmat)+
+                          ncol(tau.fitmat) + 1):length(par.int)]
+    names(psi.hat) <- colnames(lambda.sieve)
+  }
+  else{
+    formula.int <- reformulate(c(int.var, "survival::strata(s)"),
+                               response = "survival::Surv(t, delta)")
+    fit.int <- survival::coxph(formula.int,
+                               data = dat.fit)
+    par.int.refit <- fit.int$coefficients
+    coefse.int <- summary(fit.int)$coefficients[,3]
+    betahat.int <- par.int.refit[tau.var.selected]
+    betase.int <- coefse.int[tau.var.selected]
+    var.betahat <- fit.int$var[(ncol(c1.fitmat) + ncol(c0.fitmat) + 1):
+                                 (ncol(c1.fitmat) + ncol(c0.fitmat) + length(tau.var.selected)),
+                               (ncol(c1.fitmat) + ncol(c0.fitmat) + 1):
+                                 (ncol(c1.fitmat) + ncol(c0.fitmat) + length(tau.var.selected))]
+    var.betahat.int <- var.betahat
+
+    taux.int <- apply(matrix(tau.fitmat[,tau.var.selected],
+                             ncol = length(tau.var.selected)), 1, function(x) sum(x*betahat.int))
+    ate.int <- sum((1 - s)*taux.int)/sum(1 - s)
+
+    xbar.int <- matrix(colMeans(matrix(tau.fitmat[s==0,tau.var.selected],
+                                       ncol = length(tau.var.selected))), nrow = 1)
+    xvar.int <- var(matrix(tau.fitmat[s==0,tau.var.selected],
+                           ncol = length(tau.var.selected)))/sum(1 - s)
+    betamat <- matrix(betahat.int, nrow = 1)
+    ateve.int <- as.numeric(xbar.int%*%var.betahat.int%*%t(xbar.int)) +
+      as.numeric(betamat%*%xvar.int%*%t(betamat))
+
+    # return the selected variables
+    if(length(index0) == 0 || length(index0) == length(int.allvar)){
+      psi.hat <- par.int.refit[(ncol(c1.fitmat) + ncol(c0.fitmat) + ncol(tau.fitmat)+1):(length(par.int.refit)-1)]
+    }
+    else{
+      psi.hat <- rep(0, ncol(lambda.fitmat))
+      names(psi.hat) <- colnames(lambda.fitmat)
+      theta_pen_non0 <- par.int.refit[lambda.var.selected]
+      psi.hat[lambda.var.selected] <- theta_pen_non0
+    }
+    names(psi.hat) <- colnames(lambda.sieve)
+  }
+
+
+  return(list(
+    # point estimate
+    betahat = betahat.int,
+    ve.beta = betase.int^2,
+    var.betahat = var.betahat.int,
+    ate = ate.int,
+    ve.ate = ateve.int,
+    psi.hat = psi.hat
+  ))
+}
+
 #' Estimation of the heterogeneous treatment effect based on the covariates from
 #' the basis approximation for the trial data
 #'
@@ -264,7 +447,8 @@ fitcox.int <- function(tau.mat, c1.sieve, c0.sieve, lambda.sieve,
 #' @param a the binary treatment assignment, where the active treatment group
 #' should be encoded as `1`, and the control group should be encoded as `0`.
 #' @param s the binary data source indicator, where the trial data should be
-#' encoded as `1`, and the observational study should be encoded as `0`.
+#' encoded as `1`, and the observational study should be encoded as `0`. One can
+#' also omit this term by only including the trial data.
 #' @param t the observed event time.
 #' @param delta the event indicator.
 #' @return a list of estimators, including
@@ -335,6 +519,151 @@ fitcox.rct <- function(tau.mat, c1.sieve, a, s = NULL, t, delta){
   ))
 }
 
+#' Penalized estimation of the heterogeneous treatment effect based on the
+#' covariates from the basis approximation for the trial data
+#'
+#' This function obtains the trial estimator with its variance estimates by the
+#' penalized Cox model.
+#'
+#' @param tau.mat the matrix that contains the covariate terms of \eqn{\tau(X)}.
+#' @param c1.sieve the covariate matrix for \eqn{c_1(X)} in the sieve
+#' approximation.
+#' @param a the binary treatment assignment, where the active treatment group
+#' should be encoded as `1`, and the control group should be encoded as `0`.
+#' @param s the binary data source indicator, where the trial data should be
+#' encoded as `1`, and the observational study should be encoded as `0`. One can
+#' also omit this term by only including the trial data.
+#' @param t the observed event time.
+#' @param delta the event indicator.
+#' @param penalty.type the type of penalty in the variable selection procedure,
+#' including
+#' \itemize{
+#' \item `lasso`: the lasso penalty.
+#' \item `adaptive.lasso`: the adaptive lasso penalty.
+#' }
+#' @param nfolds the fold of cross-validation, the default value is `5`.
+#' @return a list of estimators, including
+#' \itemize{
+#' \item `betahat`: the estimated treatment effect parameter
+#' \item `ve.beta`: the variance estimate of the estimated treatment effect
+#' \item `var.betahat`: the covariance matrix of the estimated treatment effect
+#' parameter
+#' \item `ate`: the estimated average treatment effect
+#' \item `ve.ate`: the variance estimate of the average treatment effect
+#' }
+#' @import survival
+#' @export
+fitcox.rct.pen <- function(tau.mat, c1.sieve, a, s = NULL, t, delta,
+                           penalty.type = "adaptive.lasso",
+                           nfolds = 5){
+  if(is.null(s)){
+    c1.fitmat <- c1.sieve
+    colnames(tau.mat) <- paste0("ax", 1:ncol(tau.mat))
+    tau.fitmat <- tau.mat*a
+    t <- t
+    a <- a
+    delta <- delta
+  }
+  else{
+    index.rct <- which(s == 1)
+    c1.fitmat <- c1.sieve[index.rct,]
+    colnames(tau.mat) <- paste0("ax", 1:ncol(tau.mat))
+    tau.fitmat <- (tau.mat*a)[index.rct,]
+    t <- t[index.rct]
+    a <- a[index.rct]
+    delta <- delta[index.rct]
+  }
+  n.rct <- nrow(c1.fitmat)
+  dat.fit <- cbind(c1.fitmat, tau.fitmat, t, delta)
+  dat.fit <- data.frame(dat.fit)
+
+  # initial value for adaptive lasso -- Cox model without penalization
+  rct.var <- paste(c(colnames(c1.fitmat), colnames(tau.fitmat)),
+                   collapse=" + ")
+  formula.rct <- reformulate(rct.var, response = "survival::Surv(t, delta)")
+  fit.rct.ini <- survival::coxph(formula.rct, data = dat.fit)
+  par.rct.ini <- fit.rct.ini$coefficients
+  betahat.rct <- par.rct.ini[colnames(tau.fitmat)]
+
+  # fit adaptive lasso, with penalty on tau(X)
+  xvar.mat <- dat.fit[,c(colnames(c1.fitmat), colnames(tau.fitmat))]
+  xvar.mat <- data.matrix(xvar.mat)
+  penalty.factor <- rep(0, length(par.rct.ini))
+  if(!(penalty.type %in% c("adaptive.lasso", "lasso"))){
+    stop("No available type to implement variable selection")
+  }
+  else if(penalty.type == "adaptive.lasso"){
+    penalty.factor[(ncol(c1.fitmat)+1):
+                     (length(par.rct.ini))] <- 1/abs(betahat.rct)
+  }
+  else if(penalty.type == "lasso"){
+    penalty.factor[(ncol(c1.fitmat)+1):
+                     (length(par.rct.ini))] <- rep(1, length(betahat.rct))
+  }
+
+  y <- survival::Surv(t, delta)
+  fit.cv <- suppressWarnings(glmnet::cv.glmnet(x = xvar.mat,
+                                               y = y,
+                                               family = "cox",
+                                               penalty.factor = penalty.factor,
+                                               thresh = 1e-14,
+                                               nfolds = nfolds))
+  par.rct <- as.vector(coef(fit.cv, s = "lambda.min"))
+
+  # After varaible selection, refit the Cox model
+  int.allvar <- c(colnames(c1.fitmat), colnames(tau.fitmat))
+  index0 <- which(par.rct == 0)
+  if(length(index0) == 0 || length(index0) == length(int.allvar)){
+    int.var <- int.allvar
+  }
+  else{
+    int.var <- int.allvar[-index0]
+  }
+  tau.var.selected <- intersect(int.var, colnames(tau.fitmat))
+  if(length(tau.var.selected) == 0){
+    betahat.int <- rep(0, ncol(tau.fitmat))
+    betase.int <- rep(0, ncol(tau.fitmat))
+    var.betahat.int <- matrix(0, ncol(tau.fitmat), ncol(tau.fitmat))
+    ate.int <- 0
+    ateve.int <- 0
+  }
+  else{
+    formula.rct <- reformulate(int.var,response = "survival::Surv(t, delta)")
+    fit.rct <- survival::coxph(formula.rct,
+                               data = dat.fit)
+    par.rct.refit <- fit.rct$coefficients
+    coefse.rct <- summary(fit.rct)$coefficients[,3]
+    betahat.rct <- par.rct.refit[tau.var.selected]
+    betase.rct <- coefse.rct[tau.var.selected]
+    var.betahat <- fit.rct$var[(ncol(c1.fitmat) + 1):
+                                 (ncol(c1.fitmat) + length(tau.var.selected)),
+                               (ncol(c1.fitmat) + 1):
+                                 (ncol(c1.fitmat) + length(tau.var.selected))]
+    var.betahat.rct <- var.betahat
+
+    taux.rct <- apply(matrix(tau.fitmat[,tau.var.selected],
+                             ncol = length(tau.var.selected)), 1,
+                      function(x) sum(x*betahat.rct))
+    ate.rct <- mean(taux.rct)
+
+    xbar.rct <- matrix(colMeans(matrix(tau.fitmat[,tau.var.selected],
+                                       ncol = length(tau.var.selected))), nrow = 1)
+    xvar.rct <- var(matrix(tau.fitmat[,tau.var.selected],
+                           ncol = length(tau.var.selected)))/n.rct
+    betamat <- matrix(betahat.rct, nrow = 1)
+    ateve.rct <- as.numeric(xbar.rct%*%var.betahat.rct%*%t(xbar.rct)) +
+      as.numeric(betamat%*%xvar.rct%*%t(betamat))
+  }
+
+  return(list(
+    # point estimate
+    betahat = betahat.rct,
+    ve.beta = betase.rct^2,
+    var.betahat = var.betahat.rct,
+    ate = ate.rct,
+    ve.ate = ateve.rct
+  ))
+}
 
 #' Integrative estimation of the heterogeneous treatment effect with the use of
 #' sieve approximation
@@ -379,6 +708,16 @@ fitcox.rct <- function(tau.mat, c1.sieve, a, s = NULL, t, delta){
 #' encoded as `1`, and the observational study should be encoded as `0`.
 #' @param t the observed event time.
 #' @param delta the event indicator.
+#' @param penalty.type the type of penalty in the variable selection procedure,
+#' including
+#' \itemize{
+#' \item `lasso`: the lasso penalty.
+#' \item `adaptive.lasso`: the adaptive lasso penalty.
+#' }
+#' @param add.tau.pen a logic variable to indicate whether to conduct the
+#' variable selection on the treatment effect function \eqn{\tau(X)}. The
+#' default value is `FALSE`, where no variable selection is included in
+#' \eqn{\tau(X)}.
 #' @param nfolds the fold of cross-validation, the default value is `5`.
 #' @param type the type of estimator the user want to obtain. Available types
 #' include
@@ -421,14 +760,18 @@ fitcox.rct <- function(tau.mat, c1.sieve, a, s = NULL, t, delta){
 #' c0.mat = c0.mat, c0.discrete = c0.discrete, q.c0 = q.c0,
 #' lambda.mat = lambda.mat,
 #' lambda.discrete = lambda.discrete, q.lambda = q.lambda,
-#' a = a, s = s, t = t, delta = delta,
-#' nfolds = nfolds, type = c("int", "rct"))
+#' basis.type = "poly.raw",
+#' a = a, s = s, t = t, delta = delta, penalty.type = "adaptive.lasso",
+#' add.tau.pen = FALSE, nfolds = nfolds, type = c("int", "rct"))
 #' res.hte
 surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
                      c0.mat, c0.discrete = NULL, q.c0,
                      lambda.mat, lambda.discrete = NULL, q.lambda,
                      basis.type = "poly.raw",
-                     a, s, t, delta, nfolds = 5, type = "int"){
+                     a, s, t, delta,
+                     penalty.type = "adaptive.lasso",
+                     add.tau.pen = FALSE,
+                     nfolds = 5, type = "int"){
   xmat <- sieve.mat(c1.mat = c1.mat,
                     c1.discrete = c1.discrete, q.c1 = q.c1,
                     c0.mat = c0.mat,
@@ -448,10 +791,22 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
   ve.ate <- NULL
   psi.est <- NULL
   if("int" %in% type){
-    res.int <- fitcox.int(tau.mat = tau.mat, c1.sieve = c1.sieve,
-                          c0.sieve = c0.sieve, lambda.sieve = lambda.sieve,
-                          a = a, s = s, t = t, delta = delta,
-                          nfolds = nfolds)
+    if(!add.tau.pen){
+      res.int <- fitcox.int(tau.mat = tau.mat, c1.sieve = c1.sieve,
+                            c0.sieve = c0.sieve, lambda.sieve = lambda.sieve,
+                            a = a, s = s, t = t, delta = delta,
+                            penalty.type = penalty.type,
+                            nfolds = nfolds)
+    }
+    else{
+      res.int <- fitcox.int.pen(tau.mat = tau.mat,
+                                c1.sieve = c1.sieve,
+                                c0.sieve = c0.sieve,
+                                lambda.sieve = lambda.sieve,
+                                a = a, s = s, t = t, delta = delta,
+                                penalty.type = penalty.type,
+                                nfolds = nfolds)
+    }
     beta.est <- c(beta.est, list(res.int$betahat))
     ve.beta <- c(ve.beta, list(res.int$ve.beta))
     cov.beta <- c(cov.beta, list(res.int$var.betahat))
@@ -464,8 +819,17 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
   }
 
   if("rct" %in% type){
-    res.rct <- fitcox.rct(tau.mat = tau.mat, c1.sieve = c1.sieve,
-                          a = a, s = s, t = t, delta = delta)
+    if(!add.tau.pen){
+      res.rct <- fitcox.rct(tau.mat = tau.mat, c1.sieve = c1.sieve,
+                            a = a, s = s, t = t, delta = delta)
+    }
+    else{
+      res.rct <- fitcox.rct.pen(tau.mat = tau.mat,
+                                c1.sieve = c1.sieve,
+                                a = a, s = s, t = t, delta = delta,
+                                penalty.type = "adaptive.lasso",
+                                nfolds = nfolds)
+    }
     beta.est <- c(beta.est, list(res.rct$betahat))
     ve.beta <- c(ve.beta, list(res.rct$ve.beta))
     cov.beta <- c(cov.beta, list(res.rct$var.betahat))

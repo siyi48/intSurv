@@ -53,8 +53,8 @@ to generate the polynomial basis.}
 including
 \itemize{
 \item \code{poly.raw}: the raw polynomial basis. The default type of the basis.
-\item \code{poly.orthogonal}: the orthogonal polynomial basis
-\item \code{bs}: the B-spline basis for a polynomial spline
+\item \code{poly.orthogonal}: the orthogonal polynomial basis.
+\item \code{bs}: the B-spline basis for a polynomial spline.
 }}
 }
 \value{

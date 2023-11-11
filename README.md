@@ -73,9 +73,9 @@ c1.mat <- matrix(x1.std, ncol = 1)
 c1.discrete <- matrix(dat$x2, ncol = 1)
 c0.mat <- matrix(x1.std, ncol = 1)
 c0.discrete <- matrix(dat$x2, ncol = 1)
+tau.mat <- cbind(1, x1.std, x1.std^2)
 lambda.mat <-  matrix(x1.std, ncol = 1)
 lambda.discrete <- cbind(1, dat$x2)
-tau.mat <- cbind(1, x1.std, x1.std^2)
 s <- dat$s
 delta <- dat$delta
 t <- dat$t
@@ -88,6 +88,7 @@ res.hte <- surv.hte(tau.mat = tau.mat, c1.mat = c1.mat,
                     lambda.discrete = lambda.discrete, q.lambda = q.lambda,
                     basis.type = "poly.raw",
                     a = a, s = s, t = t, delta = delta,
+                    penalty.type = "adaptive.lasso",
                     nfolds = nfolds, type = c("int", "rct"))
 res.hte
 #> $beta.est

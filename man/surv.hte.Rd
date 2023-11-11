@@ -21,6 +21,8 @@ surv.hte(
   s,
   t,
   delta,
+  penalty.type = "adaptive.lasso",
+  add.tau.pen = FALSE,
   nfolds = 5,
   type = "int"
 )
@@ -76,6 +78,18 @@ encoded as \code{1}, and the observational study should be encoded as \code{0}.}
 
 \item{delta}{the event indicator.}
 
+\item{penalty.type}{the type of penalty in the variable selection procedure,
+including
+\itemize{
+\item \code{lasso}: the lasso penalty.
+\item \code{adaptive.lasso}: the adaptive lasso penalty.
+}}
+
+\item{add.tau.pen}{a logic variable to indicate whether to conduct the
+variable selection on the treatment effect function \eqn{\tau(X)}. The
+default value is \code{FALSE}, where no variable selection is included in
+\eqn{\tau(X)}.}
+
 \item{nfolds}{the fold of cross-validation, the default value is \code{5}.}
 
 \item{type}{the type of estimator the user want to obtain. Available types
@@ -125,7 +139,8 @@ c1.discrete = c1.discrete, q.c1 = q.c1,
 c0.mat = c0.mat, c0.discrete = c0.discrete, q.c0 = q.c0,
 lambda.mat = lambda.mat,
 lambda.discrete = lambda.discrete, q.lambda = q.lambda,
-a = a, s = s, t = t, delta = delta,
-nfolds = nfolds, type = c("int", "rct"))
+basis.type = "poly.raw",
+a = a, s = s, t = t, delta = delta, penalty.type = "adaptive.lasso",
+add.tau.pen = FALSE, nfolds = nfolds, type = c("int", "rct"))
 res.hte
 }
