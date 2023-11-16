@@ -621,11 +621,11 @@ fitcox.rct.pen <- function(tau.mat, c1.sieve, a, s = NULL, t, delta,
   }
   tau.var.selected <- intersect(int.var, colnames(tau.fitmat))
   if(length(tau.var.selected) == 0){
-    betahat.int <- rep(0, ncol(tau.fitmat))
-    betase.int <- rep(0, ncol(tau.fitmat))
-    var.betahat.int <- matrix(0, ncol(tau.fitmat), ncol(tau.fitmat))
-    ate.int <- 0
-    ateve.int <- 0
+    betahat.rct <- rep(0, ncol(tau.fitmat))
+    betase.rct <- rep(0, ncol(tau.fitmat))
+    var.betahat.rct <- matrix(0, ncol(tau.fitmat), ncol(tau.fitmat))
+    ate.rct <- 0
+    ateve.rct <- 0
   }
   else{
     formula.rct <- reformulate(int.var,response = "survival::Surv(t, delta)")
@@ -827,7 +827,7 @@ surv.hte <- function(tau.mat, c1.mat, c1.discrete = NULL, q.c1,
       res.rct <- fitcox.rct.pen(tau.mat = tau.mat,
                                 c1.sieve = c1.sieve,
                                 a = a, s = s, t = t, delta = delta,
-                                penalty.type = "adaptive.lasso",
+                                penalty.type = penalty.type,
                                 nfolds = nfolds)
     }
     beta.est <- c(beta.est, list(res.rct$betahat))
