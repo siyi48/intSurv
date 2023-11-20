@@ -567,8 +567,8 @@ fitcox.rct.pen <- function(tau.mat, c1.sieve, a, s = NULL, t, delta,
   else{
     index.rct <- which(s == 1)
     c1.fitmat <- c1.sieve[index.rct,]
-    colnames(tau.mat) <- paste0("ax", 1:ncol(tau.mat))
-    tau.fitmat <- (tau.mat*a)[index.rct,]
+    tau.fitmat <- matrix((tau.mat*a)[index.rct,], nrow = length(index.rct))
+    colnames(tau.fitmat) <- paste0("ax", 1:ncol(tau.fitmat))
     t <- t[index.rct]
     a <- a[index.rct]
     delta <- delta[index.rct]
