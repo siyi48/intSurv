@@ -50,71 +50,104 @@ sieve.mat <- function(c1.mat, c1.discrete = NULL, q.c1,
                       basis.type = "poly.raw"){
   # create basis function for the nuisance function
   # (1) c1.sieve
-  c1.ncol <- ncol(c1.mat)
-  c1.sieve <- NULL
-  for(k in 1:c1.ncol){
-    if(!(basis.type %in% c("poly.raw", "poly.orthogonal", "bs"))){
-      stop("No available type to generate the basis")
+  if(!is.null(c1.mat)){
+    c1.ncol <- ncol(c1.mat)
+    c1.sieve <- NULL
+    for(k in 1:c1.ncol){
+      if(!(basis.type %in% c("poly.raw", "poly.orthogonal", "bs"))){
+        stop("No available type to generate the basis")
+      }
+      else if(basis.type == "poly.raw"){
+        basis.mat <- poly(c1.mat[,k], degree = q.c1, raw = TRUE)
+      }
+      else if(basis.type == "poly.orthogonal"){
+        basis.mat <- poly(c1.mat[,k], degree = q.c1)
+      }
+      else if(basis.type == "bs"){
+        basis.mat <- splines::bs(c1.mat[,k], df = q.c1)
+      }
+      colnames(basis.mat) <- paste0("s1x", k, 1:q.c1)
+      c1.sieve <- cbind(c1.sieve, basis.mat)
     }
-    else if(basis.type == "poly.raw"){
-      basis.mat <- poly(c1.mat[,k], degree = q.c1, raw = TRUE)
+    if(!is.null(c1.discrete)){
+      colnames(c1.discrete) <- paste0("s1x", (c1.ncol+1):(c1.ncol+ncol(c1.discrete)))
+      c1.sieve <- cbind(c1.sieve, c1.discrete)
     }
-    else if(basis.type == "poly.orthogonal"){
-      basis.mat <- poly(c1.mat[,k], degree = q.c1)
-    }
-    else if(basis.type == "bs"){
-      basis.mat <- splines::bs(c1.mat[,k], df = q.c1)
-    }
-    colnames(basis.mat) <- paste0("s1x", k, 1:q.c1)
-    c1.sieve <- cbind(c1.sieve, basis.mat)
   }
-  colnames(c1.discrete) <- paste0("s1x", (c1.ncol+1):(c1.ncol+ncol(c1.discrete)))
-  c1.sieve <- cbind(c1.sieve, c1.discrete)
+  else if(!is.null(c1.discrete)){
+    colnames(c1.discrete) <- paste0("s1x", 1:ncol(c1.discrete))
+    c1.sieve <- c1.discrete
+  }
+  else{
+    stop("Cannot set NULL to both c1.mat and c1.discrete")
+  }
 
   # (2) c0.sieve
-  c0.ncol <- ncol(c0.mat)
-  c0.sieve <- NULL
-  for(k in 1:c0.ncol){
-    if(!(basis.type %in% c("poly.raw", "poly.orthogonal", "bs"))){
-      stop("No available type to generate the basis")
+  if(!is.null(c0.mat)){
+    c0.ncol <- ncol(c0.mat)
+    c0.sieve <- NULL
+    for(k in 1:c0.ncol){
+      if(!(basis.type %in% c("poly.raw", "poly.orthogonal", "bs"))){
+        stop("No available type to generate the basis")
+      }
+      else if(basis.type == "poly.raw"){
+        basis.mat <- poly(c0.mat[,k], degree = q.c0, raw = TRUE)
+      }
+      else if(basis.type == "poly.orthogonal"){
+        basis.mat <- poly(c0.mat[,k], degree = q.c0)
+      }
+      else if(basis.type == "bs"){
+        basis.mat <- splines::bs(c0.mat[,k], df = q.c0)
+      }
+      colnames(basis.mat) <- paste0("s0x", k, 1:q.c0)
+      c0.sieve <- cbind(c0.sieve, basis.mat)
     }
-    else if(basis.type == "poly.raw"){
-      basis.mat <- poly(c0.mat[,k], degree = q.c0, raw = TRUE)
+    if(!is.null(c0.discrete)){
+      colnames(c0.discrete) <- paste0("s0x", (c0.ncol+1):(c0.ncol+ncol(c0.discrete)))
+      c0.sieve <- cbind(c0.sieve, c0.discrete)
     }
-    else if(basis.type == "poly.orthogonal"){
-      basis.mat <- poly(c0.mat[,k], degree = q.c0)
-    }
-    else if(basis.type == "bs"){
-      basis.mat <- splines::bs(c0.mat[,k], df = q.c0)
-    }
-    colnames(basis.mat) <- paste0("s0x", k, 1:q.c0)
-    c0.sieve <- cbind(c0.sieve, basis.mat)
   }
-  colnames(c0.discrete) <- paste0("s0x", (c0.ncol+1):(c0.ncol+ncol(c0.discrete)))
-  c0.sieve <- cbind(c0.sieve, c0.discrete)
+  else if(!is.null(c0.discrete)){
+    colnames(c0.discrete) <- paste0("s0x", 1:ncol(c0.discrete))
+    c0.sieve <- c0.discrete
+  }
+  else{
+    stop("Cannot set NULL to both c0.mat and c0.discrete")
+  }
 
   # (3) lambda.sieve
-  lambda.ncol <- ncol(lambda.mat)
-  lambda.sieve <- NULL
-  for(k in 1:lambda.ncol){
-    if(!(basis.type %in% c("poly.raw", "poly.orthogonal", "bs"))){
-      stop("No available type to generate the basis")
+  if(!is.null(lambda.mat)){
+    lambda.ncol <- ncol(lambda.mat)
+    lambda.sieve <- NULL
+    for(k in 1:lambda.ncol){
+      if(!(basis.type %in% c("poly.raw", "poly.orthogonal", "bs"))){
+        stop("No available type to generate the basis")
+      }
+      else if(basis.type == "poly.raw"){
+        basis.mat <- poly(lambda.mat[,k], degree = q.lambda, raw = TRUE)
+      }
+      else if(basis.type == "poly.orthogonal"){
+        basis.mat <- poly(lambda.mat[,k], degree = q.lambda)
+      }
+      else if(basis.type == "bs"){
+        basis.mat <- splines::bs(lambda.mat[,k], df = q.lambda)
+      }
+      colnames(basis.mat) <- paste0("s0ax", k, 1:q.lambda)
+      lambda.sieve <- cbind(lambda.sieve, basis.mat)
     }
-    else if(basis.type == "poly.raw"){
-      basis.mat <- poly(lambda.mat[,k], degree = q.lambda, raw = TRUE)
+    if(!is.null(lambda.discrete)){
+      colnames(lambda.discrete) <- paste0("s0ax",
+                                          (lambda.ncol+1):(lambda.ncol+ncol(lambda.discrete)))
+      lambda.sieve <- cbind(lambda.sieve, lambda.discrete)
     }
-    else if(basis.type == "poly.orthogonal"){
-      basis.mat <- poly(lambda.mat[,k], degree = q.lambda)
-    }
-    else if(basis.type == "bs"){
-      basis.mat <- splines::bs(lambda.mat[,k], df = q.lambda)
-    }
-    colnames(basis.mat) <- paste0("s0ax", k, 1:q.lambda)
-    lambda.sieve <- cbind(lambda.sieve, basis.mat)
   }
-  colnames(lambda.discrete) <- paste0("s0ax",
-                                      (lambda.ncol+1):(lambda.ncol+ncol(lambda.discrete)))
-  lambda.sieve <- cbind(lambda.sieve, lambda.discrete)
+  else if(!is.null(lambda.discrete)){
+    colnames(lambda.discrete) <- paste0("s0ax",1:ncol(lambda.discrete))
+    lambda.sieve <- lambda.discrete
+  }
+  else{
+    stop("Cannot set NULL to both lambda.mat and lambda.discrete")
+  }
 
   return(list(
     c1.sieve = c1.sieve,
